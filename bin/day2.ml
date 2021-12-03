@@ -1,17 +1,18 @@
 open Stdio
 open Base
 
-type position = { x : int; y : int }
+type position = { x : int; y : int; aim : int}
 
 let apply pos move =
-    { x = pos.x + move.x; y = pos.y + move.y }
+    let move = move pos.aim in
+    { x = pos.x + move.x; y = pos.y + move.y; aim = move.aim }
 
 let parse move =
-    let to_move direction distance =
+    let to_move direction units aim =
         match direction with
-        | "forward" -> { x = distance; y = 0; }
-        | "up" -> { x = 0; y = -distance }
-        | "down" -> { x = 0; y = distance }
+        | "forward" -> { x = units; y = aim * units; aim = aim }
+        | "up" -> { x = 0; y = 0; aim = aim - units }
+        | "down" -> { x = 0; y = 0; aim = aim +units }
         | _ -> raise (Invalid_argument "invalid direction") in
     let split = String.split ~on:' ' move in
     let direction = match List.nth split 0 with
@@ -33,5 +34,5 @@ let rec main pos =
             main applied
 
 let () =
-    let final = main { x = 0; y = 0; } in
+    let final = main { x = 0; y = 0; aim = 0} in
     printf "Total: %d\n" (final.x * final.y)
