@@ -41,7 +41,7 @@ let rec transpose = function
   | (x :: xs) :: xss ->
       (x :: List.map xss ~f:List.hd_exn) :: transpose (xs :: List.map xss ~f:List.tl_exn)
 
-let rec find_winner { moves; boards } =
+let rec find_winners { moves; boards } : (number list list * int) list =
     let update_board move board =
         let update_row row =
             List.map row ~f:(fun x -> if x.int = move then { x with marked = true } else x) in
@@ -52,13 +52,15 @@ let rec find_winner { moves; boards } =
         let down = all_marked (transpose numbers) in
         Option.is_some across || Option.is_some down in
     match moves with
-    | [] -> raise (Invalid_argument "ran out of moves")
+    | [] -> []
     | hd :: tl ->
             let updated = List.map boards ~f:(update_board hd) in
-            let winning_board = List.find updated ~f:winner in
-            match winning_board with
-            | None -> find_winner { moves = tl; boards = updated }
-            | Some w -> (w, hd)
+            let winners, losers = List.partition_tf updated ~f:winner in
+            let rest = { moves = tl; boards = losers } in
+            let winners = List.map winners ~f:(fun w -> (w, hd)) in
+            match winners with
+            | [] -> find_winners rest
+            | w -> List.append w (find_winners rest)
 
 let calculate_score (board, winning_number) =
     let sum_row row = List.fold row ~init:0 ~f:(fun acc n -> if n.marked then acc else acc + n.int) in
@@ -72,5 +74,6 @@ let rec readlines acc =
 
 let () =
     let game = read_game (readlines []) in
-    let winner = find_winner game in
-    Stdio.printf "score: %d" (calculate_score winner)
+    let winners = find_winners game in
+    let print winner = Stdio.printf "score: %d\n" (calculate_score winner) in
+    List.iter winners ~f:print
